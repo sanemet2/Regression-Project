@@ -37,7 +37,7 @@ def main():
     # Optional arguments for file loading and output (with defaults)
     parser.add_argument("--header", type=int, default=0, 
                         help="Row number (0-indexed) containing the header")
-    parser.add_argument("--sheet", default=0, 
+    parser.add_argument("--sheet", default="Monthly", 
                         help="Name or index (0-indexed) of the sheet to read")
     parser.add_argument("--output_dir", default="results", 
                         help="Directory to save results")
