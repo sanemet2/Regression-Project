@@ -57,10 +57,18 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 *   Automatically adjust time periods if one is weekly, the other monthly etc.
 *   Fix charting functions and rolling correlation charts
 
-## 5. Interactive CLI Enhancements (Completed)
+## 5. Input Handling Strategy (CLI)
 
-- [x] Modify `argparse` in `main.py` to make `--range` and `--window` optional command-line arguments.
-- [x] Add logic in `main.py` to check if `range` and `window` values were provided.
-- [x] If `range` is missing, prompt the user interactively: "Please enter the maximum lead/lag shift range (e.g., 12): ".
-- [x] If `window` is missing, prompt the user interactively: "Please enter the rolling window size (e.g., 36): ".
-- [x] Add basic validation (e.g., check for positive integers) for the interactively entered `range` and `window` values, re-prompting if invalid.
+*   **File Path & Core Columns (`--file-path`, `--date-col`, `--leading-col`, `--target-col`):**
+    - [x] Implemented as optional command-line arguments.
+    - [x] Default values are hardcoded in `main.py` (`Data/Input Data.xlsx`, `date`, `icsa`, `unrate`).
+    - [x] Defaults are shown in the help message (`-h`).
+    - [x] Script does *not* interactively prompt for these if missing; defaults are used.
+*   **Analysis Parameters (`--range`, `--window`):**
+    - [x] Implemented as optional command-line arguments.
+    - [x] If not provided via command line, the script prompts the user interactively.
+    - [x] Interactive prompts include descriptions of what the parameters mean.
+    - [x] Basic validation (positive integer) is performed on interactive input.
+*   **Other Parameters (`--header`, `--sheet`, `--output_dir`):**
+    - [x] Remain optional command-line arguments with defaults.
+    - [x] Script does not prompt interactively for these.
