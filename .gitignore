@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Output directory
+results/
+
+# Environment variables
+.env
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db
