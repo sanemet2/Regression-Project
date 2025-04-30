@@ -19,7 +19,7 @@ def main():
     )
 
     # Optional arguments for core data identification (with defaults)
-    parser.add_argument("--file-path", default="Data/Input Data.xlsx",
+    parser.add_argument("--file-path", default="C:\\Users\\franc\\OneDrive\\Desktop\\Programming\\Regression Project\\fredgraph.xlsx",
                         help="Path to the Excel file (.xlsx or .xls)")
     parser.add_argument("--date-col", default="date",
                         help="Name of the date column in the Excel file")
