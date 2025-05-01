@@ -14,6 +14,7 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
         *   Target series column name.
     *   Parses dates, attempting common formats including `mm/yy`.
     *   Handles missing data by dropping rows with `NaN` in selected columns.
+    *   Optionally excludes user-specified date periods (e.g., `--exclude-period START:END`) before analysis.
 *   **Optimal Lead/Lag Analysis:**
     *   User specifies the maximum lead/lag period `N`.
     *   The application tests shifts from `-N` to `+N` periods.
@@ -44,6 +45,8 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 
 *   **Other Parameters (`--header`, `--sheet`, `--output_dir`):** These remain optional command-line arguments with defaults (`0`, `Monthly`, `results`, respectively). The script does not prompt interactively for these.
 
+*   **Date Exclusion (`--exclude-period`):** Optionally specify date periods to remove from the analysis *before* calculations. Use the format `YYYY-MM-DD:YYYY-MM-DD`. This argument can be used multiple times to exclude several distinct periods.
+
 ## 4. Technical Stack
 
 *   **Language:** Python 3.x
@@ -61,22 +64,57 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 *   More sophisticated missing data handling options.
 *   Additional statistical tests (e.g., p-values for correlations).
 *   Embedding plots directly into Excel (using `xlsxwriter` capabilities).
-*   Winsorizing / trimming outliers
 *   Automatically adjust time periods if one is weekly, the other monthly etc.
 *   Fix charting functions and rolling correlation charts
+*   Fix rolling correlations? Need to inquire as to why its mean reverting
 
-## 6. Code Refactoring Plan
+## 6. Outlier Handling Plan (User-Specified Date Exclusion)
 
-*   **Efficiency & Conciseness in `analysis.py`:**
-    *   [ ] Refactor `find_optimal_lead_lag` to potentially reduce complexity. Explore simplifying how the temporary DataFrame (`temp_df`) is handled inside the loop if possible without significant performance impact.
-    *   [ ] Refactor `calculate_rolling_correlations` similarly. Look for ways to streamline the logic within the loop.
-    *   [ ] **Test:** After refactoring `analysis.py`, run the script (`python main.py`, enter `24`, `24`) and compare output (optimal shift, R-squared, exported Excel) to ensure results are identical to the pre-refactoring run.
-*   **Consolidation & Readability:**
-    *   [ ] Review `plotting.py`: Identify opportunities to create helper functions for common plotting tasks (e.g., setting titles/labels, saving figures, standardizing appearance) to reduce code repetition and improve conciseness.
-    *   [ ] Define Constants: Review all `.py` files for repeated strings (like internal column names 'Leading', 'Target', 'Shifted_Leading', 'Correlation_Shift_X') or magic numbers. Define these as constants (e.g., `LEADING_COL = 'Leading'`) at the top of the modules where they are primarily used (`analysis.py`, `plotting.py`, `export.py`).
-    *   [ ] **Test:** After consolidating plotting code and defining constants, run the script again to ensure plots are generated correctly and results match previous runs.
-*   **Minor Improvements & Cleanup:**
-    *   [ ] Review interactive input loops in `main.py` for potential minor structural simplification.
-    *   [ ] Enhance error handling in `data_loader.py` during date parsing (`pd.to_datetime`) to provide more specific feedback if formats are unexpected.
-    *   [ ] (Low Priority) Address `FutureWarning` in `export.py` related to `pd.concat` by adjusting how the empty/NA row is handled, if feasible without complicating the logic significantly.
-    *   [ ] **Test:** Perform a final end-to-end test run after all refactoring steps are complete using standard inputs.
+*   **Goal:** Allow the user to exclude specific date periods (e.g., COVID-19 shock) from the analysis to see the relationship based on more "normal" data.
+*   **Implementation Steps:**
+    *   [x] **Add CLI Argument:**
+        *   Modify `main.py` `ArgumentParser`.
+        *   Add a new argument `--exclude-period` using `action='append'`.
+        *   Argument should accept a string format `YYYY-MM-DD:YYYY-MM-DD`.
+        *   Include descriptive help text and `metavar`.
+        *   *(Status: Argument added. Allows bypassing interactive prompt)*
+    *   [x] **Add Interactive Prompting (Optional):**
+        *   In `main.py`, before applying exclusions (Step 2.5), check if `args.exclude_period` is empty.
+        *   If empty, ask the user "Do you want to specify any date periods to exclude? (y/n): ".
+        *   If 'y':
+            *   Implement a loop:
+                *   Prompt for "Start date (YYYY-MM-DD) or leave blank to finish: ".
+                *   If blank, break the loop.
+                *   Prompt for "End date (YYYY-MM-DD): ".
+                *   Validate date formats (YYYY-MM-DD).
+                *   Validate start_date <= end_date.
+                *   If valid, store the period string "START:END".
+                *   If invalid, show an error and prompt again for that period.
+            *   Store collected periods in a new list (e.g., `interactive_exclusions`).
+        *   Modify the exclusion logic (Step 2.5) to process `interactive_exclusions` if `args.exclude_period` was empty but interactive periods were provided.
+        *   Update summary print statements to show interactively added periods.
+        *   *(Note: Command-line `--exclude-period` arguments will override interactive prompting).*
+    *   [x] **Implement Filtering Logic:**
+        *   In `main.py`, after `df = load_data(...)`.
+        *   Check if `args.exclude_period` exists and is not empty.
+        *   Initialize an empty boolean mask (e.g., `exclusion_mask = pd.Series(False, index=df.index)`).
+        *   Loop through each `period_str` in `args.exclude_period`.
+        *   Parse `start_date` and `end_date` from `period_str` (add error handling for incorrect format).
+        *   Update the `exclusion_mask` to be `True` for dates within the current `start_date` and `end_date` range (`exclusion_mask = exclusion_mask | ((df.index >= start_date) & (df.index <= end_date))`).
+        *   After the loop, filter the DataFrame: `df = df[~exclusion_mask]`.
+        *   Print a message indicating how many rows were removed due to exclusions.
+        *   *(Status: Logic implemented)*
+    *   [x] **Documentation:**
+        *   Briefly update the README (if one exists later) or add comments in `main.py` explaining the new arguments and functionality.
+        *   *(Status: Section 2 & 3 of PLAN.md updated, comment added to main.py)*
+    *   [x] **Testing:**
+        *   Run the script *without* the `--exclude-period` argument and note the optimal shift/R-squared.
+        *   Run the script *with* `--exclude-period` targeting the COVID-19 dates (e.g., `--exclude-period 2020-03-01:2020-09-01`) and verify:
+            *   The exclusion message appears with the correct row counts.
+            *   The resulting optimal shift and R-squared value change as expected (likely higher R-squared).
+            *   The output plots and Excel file reflect the analysis run on the filtered data.
+        *   Test with multiple `--exclude-period` arguments.
+        *   Test with invalid date formats in `--exclude-period` to ensure error handling works (if implemented).
+        *   *(Status: Testing complete, results verified)*
+    *   [x] **Cleanup:** Remove the 'Winsorizing / trimming outliers' item from Section 5 ('Future Considerations') once this date exclusion feature is complete and tested.
+        *   *(Status: Item removed from Section 5)*
