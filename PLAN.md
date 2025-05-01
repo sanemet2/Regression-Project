@@ -59,16 +59,8 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 
 ## 5. Input Handling Strategy (CLI)
 
-*   **File Path & Core Columns (`--file-path`, `--date-col`, `--leading-col`, `--target-col`):**
-    - [x] Implemented as optional command-line arguments.
-    - [x] Default values are hardcoded in `main.py` (`Data/Input Data.xlsx`, `date`, `icsa`, `unrate`).
-    - [x] Defaults are shown in the help message (`-h`).
-    - [x] Script does *not* interactively prompt for these if missing; defaults are used.
-*   **Analysis Parameters (`--range`, `--window`):**
-    - [x] Implemented as optional command-line arguments.
-    - [x] If not provided via command line, the script prompts the user interactively.
-    - [x] Interactive prompts include descriptions of what the parameters mean.
-    - [x] Basic validation (positive integer) is performed on interactive input.
-*   **Other Parameters (`--header`, `--sheet`, `--output_dir`):**
-    - [x] Remain optional command-line arguments with defaults.
-    - [x] Script does not prompt interactively for these.
+*   **File Path & Core Columns (`--file-path`, `--date-col`, `--leading-col`, `--target-col`):** These are optional command-line arguments. Default values (`C:\\Users\\franc\\OneDrive\\Desktop\\Programming\\Regression Project\\fredgraph.xlsx`, `date`, `icsa`, `unrate`, respectively) are hardcoded in `main.py` and shown in the help message (`-h`). The script uses these defaults if the arguments are not provided and does not prompt interactively for them.
+
+*   **Analysis Parameters (`--range`, `--window`):** These are optional command-line arguments. If not provided via the command line, the script prompts the user interactively with descriptions of what the parameters mean. Basic positive integer validation is performed on the interactive input.
+
+*   **Other Parameters (`--header`, `--sheet`, `--output_dir`):** These remain optional command-line arguments with defaults (`0`, `Monthly`, `results`, respectively). The script does not prompt interactively for these.
