@@ -42,6 +42,16 @@ def main():
     parser.add_argument("--output_dir", default="results", 
                         help="Directory to save results")
 
+    # --- Optional Data Exclusion ---
+    parser.add_argument(
+        '--exclude-period',
+        action='append',  # Allow multiple instances of this argument
+        type=str,
+        help='Specify a period to exclude (format: YYYY-MM-DD:YYYY-MM-DD). Can be used multiple times.',
+        metavar='START_DATE:END_DATE',
+        default=[] # Initialize as empty list if not provided
+    )
+
     args = parser.parse_args()
 
     # --- Interactive Prompts for Optional Parameters --- 
@@ -49,7 +59,7 @@ def main():
         while True:
             try:
                 prompt = (
-                    "Please enter the maximum lead/lag shift range (e.g., 12).\n" 
+                    "Please enter the maximum lead/lag shift range (e.g., 12).\\n" 
                     "This defines how many periods forward and backward (+/- N) to test for the best correlation: "
                 )
                 range_input = input(prompt)
@@ -65,7 +75,7 @@ def main():
         while True:
             try:
                 prompt = (
-                    "Please enter the rolling window size (e.g., 36).\n" 
+                    "Please enter the rolling window size (e.g., 36).\\n" 
                     "This is the number of periods used to calculate the rolling correlation: "
                 )
                 window_input = input(prompt)
@@ -76,9 +86,50 @@ def main():
                     print("Error: Window size must be a positive integer.")
             except ValueError:
                 print("Error: Invalid input. Please enter an integer.")
-    # --- End Interactive Prompts ---
 
-    print("\n--- Running Analysis With Parameters ---")
+    # --- Prepare Exclusion Periods --- 
+    exclusion_periods_to_use = args.exclude_period
+    if not exclusion_periods_to_use: # Only ask interactively if none provided via CLI
+        while True:
+            prompt_interactive = input("\\nDo you want to specify any date periods to exclude? (y/n): ").lower()
+            if prompt_interactive in ['y', 'n']:
+                break
+            else:
+                print("Invalid input. Please enter 'y' or 'n'.")
+        
+        if prompt_interactive == 'y':
+            interactive_exclusions = []
+            print("Enter exclusion periods (format YYYY-MM-DD). Leave start date blank to finish.")
+            while True:
+                start_str = input("  Start date (YYYY-MM-DD) or leave blank to finish: ").strip()
+                if not start_str:
+                    break # Exit loop if start date is blank
+                
+                end_str = input(f"  End date (YYYY-MM-DD) for period starting {start_str}: ").strip()
+                
+                # Validate dates
+                try:
+                    start_date = pd.to_datetime(start_str, format='%Y-%m-%d', errors='raise')
+                    end_date = pd.to_datetime(end_str, format='%Y-%m-%d', errors='raise')
+                    
+                    if start_date > end_date:
+                        print(f"  Error: Start date {start_str} cannot be after end date {end_str}. Please re-enter.")
+                        continue # Ask for the same period again
+                    
+                    # If valid, format and store
+                    interactive_exclusions.append(f\"{start_str}:{end_str}\")
+                    print(f"    -> Period {start_str}:{end_str} added.")
+                    
+                except ValueError:
+                    print("  Error: Invalid date format. Please use YYYY-MM-DD. Please re-enter.")
+                    continue # Ask for the same period again
+            
+            if interactive_exclusions:
+                exclusion_periods_to_use = interactive_exclusions
+
+
+    # --- Parameter Summary --- 
+    print("\\n--- Running Analysis With Parameters ---")
     print(f"File Path: {args.file_path}")
     print(f"Date Column: {args.date_col}")
     print(f"Leading Column: {args.leading_col}")
@@ -88,6 +139,8 @@ def main():
     print(f"Lead/Lag Range: -{args.range} to +{args.range}")
     print(f"Rolling Window: {args.window}")
     print(f"Output Directory: {args.output_dir}")
+    if exclusion_periods_to_use: # Use the determined list
+        print(f"Exclude Periods: {', '.join(exclusion_periods_to_use)}")
     print("-" * 38)
 
     # Create output directory if it doesn't exist
@@ -97,105 +150,98 @@ def main():
             print(f"Created output directory: {args.output_dir}")
         except OSError as e:
             print(f"Error creating output directory {args.output_dir}: {e}")
-            sys.exit(1)
+            return
 
-    # --- Load Data ---
+    print("--- Starting Analysis ---")
+    print(f"File: {args.file_path}")
+    print(f"Sheet: {args.sheet}") # Print sheet name/index
+    print(f"Columns: Date='{args.date_col}', Leading='{args.leading_col}', Target='{args.target_col}'")
+    print(f"Header Row Index: {args.header}")
+    print(f"Output Directory: {args.output_dir}")
+    if exclusion_periods_to_use: # Use the determined list
+        print(f"Exclude Periods: {', '.join(exclusion_periods_to_use)}")
+    print("-" * 25)
+
+    # --- Step 2: Load Data ---
     print("Loading data...")
-    try:
-        df = load_data(args.file_path, args.date_col, args.leading_col, args.target_col, args.header, args.sheet)
-        print(f"Data loaded successfully. Shape: {df.shape}")
-        # Basic validation after loading
-        if df.empty:
-            print("Error: Dataframe is empty after loading. Check file path, sheet name, and column names.")
-            sys.exit(1)
-        if 'Date' not in df.columns:
-             print(f"Error: Processed 'Date' column not found after loading. Check original date column name ('{args.date_col}') and format.")
-             sys.exit(1)
-        # Check for NaNs only after ensuring columns exist
-        if df['Date'].isnull().any():
-             print(f"Warning: Processed 'Date' column contains NaNs after parsing.")
-        if df[['Leading', 'Target']].isnull().values.any():
-            print(f"Warning: Leading ('{args.leading_col}') or Target ('{args.target_col}') columns contain NaNs before processing. Rows with NaNs will be dropped.")
+    df = load_data(args.file_path, args.date_col, args.leading_col, args.target_col, args.header, args.sheet)
 
-    except FileNotFoundError:
-        print(f"Error: File not found at {args.file_path}")
-        sys.exit(1)
-    except KeyError as e:
-        print(f"Error: Column not found in Excel file - {e}. Check column names ('{args.date_col}', '{args.leading_col}', '{args.target_col}') and header row ('{args.header}').")
-        sys.exit(1)
-    except ValueError as e:
-        print(f"Error loading data: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"An unexpected error occurred during data loading: {e}")
-        sys.exit(1)
+    if df is None:
+        print("Exiting due to data loading error.")
+        return # Exit if data loading failed
 
-    # --- Perform Analysis ---
-    print("Finding optimal lead/lag...")
-    try:
-        r2_results_df, best_shift, max_r2 = find_optimal_lead_lag(df.copy(), args.range)
-        if r2_results_df.empty:
-             print("Warning: Optimal lead/lag analysis returned empty results. Check data and range.")
-             best_shift, max_r2 = None, None # Ensure they are None if results are empty
-        elif best_shift is not None and max_r2 is not None:
-             print(f"Optimal shift: {best_shift} period(s) with R-squared: {max_r2:.4f}")
+    # --- Step 2.5: Apply Date Exclusions (if any) ---
+    # Filter the DataFrame based on user-provided exclusion periods (CLI or interactive).
+    if exclusion_periods_to_use: # Check if the list (either from CLI or interactive) is not empty
+        print("Applying date exclusions...")
+        original_rows = len(df)
+        # Start with a mask where nothing is excluded
+        exclusion_mask = pd.Series(False, index=df.index)
+
+        for period_str in exclusion_periods_to_use: # Use the determined list
+            try:
+                start_str, end_str = period_str.split(':')
+                # Use errors='coerce' here for robustness, already validated if interactive
+                start_date = pd.to_datetime(start_str, errors='coerce') 
+                end_date = pd.to_datetime(end_str, errors='coerce')
+
+                # Check if dates parsed correctly and start <= end
+                if pd.isna(start_date) or pd.isna(end_date):
+                    print(f"  Warning: Could not parse dates in exclusion period '{period_str}'. Expected format YYYY-MM-DD. Skipping.")
+                    continue
+                if start_date > end_date:
+                    print(f"  Warning: Start date {start_str} is after end date {end_str} in exclusion period '{period_str}'. Skipping this period.")
+                    continue
+
+                # Update the mask: True for rows within this period
+                period_mask = (df.index >= start_date) & (df.index <= end_date)
+                exclusion_mask = exclusion_mask | period_mask
+                print(f"  Marked period {start_str} to {end_str} for exclusion.")
+
+            except ValueError as e:
+                print(f"  Error parsing exclusion period '{period_str}'. Expected format YYYY-MM-DD. Skipping this period.")
+            except Exception as e:
+                print(f"  Unexpected error processing exclusion period '{period_str}': {e}. Skipping this period.")
+
+        # Apply the exclusion mask
+        if exclusion_mask.any():
+            df = df[~exclusion_mask]
+            print(f"  Removed {exclusion_mask.sum()} rows based on {len(exclusion_periods_to_use)} exclusion period(s). New row count: {len(df)}")
         else:
-             print("Warning: Optimal lead/lag analysis did not determine a best shift or max R-squared.")
-             best_shift, max_r2 = None, None # Ensure they are None
-    except Exception as e:
-        print(f"An error occurred during optimal lead/lag analysis: {e}")
-        # Optionally continue without this result or exit
-        r2_results_df, best_shift, max_r2 = pd.DataFrame(), None, None 
-        # sys.exit(1) # Uncomment to exit on error
+            print("  No rows matched the specified exclusion periods.")
 
-    print("Calculating rolling correlations...")
-    try:
-        rolling_corr_df = calculate_rolling_correlations(df.copy(), args.range, args.window)
-        if rolling_corr_df.empty:
-             print("Warning: Rolling correlation analysis returned empty results. Check data, range and window.")
-    except Exception as e:
-        print(f"An error occurred during rolling correlation analysis: {e}")
-        rolling_corr_df = pd.DataFrame() # Assign empty df to allow export to continue
-        # sys.exit(1) # Uncomment to exit on error
+    # Ensure there's still data left after exclusion
+    if df.empty:
+        print("Error: No data remaining after applying exclusions. Cannot proceed.")
+        return
 
-    # --- Generate Plots ---
-    print("Generating plots...")
-    optimal_scatter_path = os.path.join(args.output_dir, "optimal_scatter.png")
-    optimal_line_path = os.path.join(args.output_dir, "optimal_line.png")
-    rolling_corr_path = os.path.join(args.output_dir, "rolling_correlations.png")
+    # --- Step 3: Find Optimal Lead/Lag ---
+    print("\nFinding optimal lead/lag...")
+    results_df, optimal_shift, max_r2 = find_optimal_lead_lag(
+        df, args.leading_col, args.target_col, args.range
+    )
+    print(f"Optimal Shift: {optimal_shift} periods (Leading series shifted by {optimal_shift})")
+    print(f"Maximum R-squared: {max_r2:.4f}")
 
-    try:
-        if best_shift is not None and not df.empty:
-            plot_scatter(df.copy(), best_shift, optimal_scatter_path, args.leading_col, args.target_col)
-            plot_optimal_lead(df.copy(), best_shift, optimal_line_path, args.leading_col, args.target_col)
-        else:
-            print("Skipping scatter and optimal lead plots due to missing best_shift or empty dataframe.")
-    except Exception as e:
-        print(f"Error generating optimal shift plots: {e}")
+    # --- Step 4: Calculate Rolling Correlations ---
+    print("\nCalculating rolling correlations...")
+    rolling_corr_df = calculate_rolling_correlations(
+        df, args.leading_col, args.target_col, args.range, args.window
+    )
 
-    try:
-        if not rolling_corr_df.empty:
-            plot_rolling_correlations(rolling_corr_df, rolling_corr_path, args.window)
-        else:
-             print("Skipping rolling correlation plot due to empty results.")
-    except Exception as e:
-        print(f"Error generating rolling correlation plot: {e}")
+    # --- Step 5: Generate Plots ---
+    print("\nGenerating plots...")
+    plot_scatter(results_df, args.leading_col, args.target_col, optimal_shift, max_r2, args.output_dir)
+    plot_optimal_lead(df, args.leading_col, args.target_col, optimal_shift, args.output_dir)
+    plot_rolling_correlations(rolling_corr_df, args.window, args.output_dir)
+    print(f"Plots saved in '{args.output_dir}' directory.")
 
-    # --- Export Results --- 
-    print("Exporting results to Excel...")
-    excel_output_path = os.path.join(args.output_dir, "analysis_results.xlsx")
-    try:
-        # Ensure None is passed if relevant data is missing
-        export_to_excel(r2_results_df if 'r2_results_df' in locals() else pd.DataFrame(), 
-                        df.copy() if 'df' in locals() and not df.empty else pd.DataFrame(), 
-                        best_shift if 'best_shift' in locals() else None, 
-                        rolling_corr_df if 'rolling_corr_df' in locals() else pd.DataFrame(), 
-                        excel_output_path, args.leading_col, args.target_col)
-        print(f"Results exported successfully to {excel_output_path}")
-    except Exception as e:
-        print(f"Error exporting results to Excel: {e}")
+    # --- Step 6: Export Results ---
+    print("\nExporting results to Excel...")
+    export_to_excel(results_df, df, rolling_corr_df, args.leading_col, args.target_col, optimal_shift, args.output_dir)
+    print(f"Results exported to '{os.path.join(args.output_dir, 'analysis_results.xlsx')}'")
 
-    print("\nAnalysis Complete.")
+    print("\n--- Analysis Complete ---")
 
 if __name__ == "__main__":
     main()
