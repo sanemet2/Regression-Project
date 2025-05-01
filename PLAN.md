@@ -36,7 +36,15 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
         *   `Rolling Correlations`: Columns for Date and the rolling correlation values for each tested lead/lag.
     *   Saves generated plots as separate image files.
 
-## 3. Technical Stack
+## 3. Input Handling Strategy (CLI)
+
+*   **File Path & Core Columns (`--file-path`, `--date-col`, `--leading-col`, `--target-col`):** These are optional command-line arguments. Default values (`C:\\Users\\franc\\OneDrive\\Desktop\\Programming\\Regression Project\\fredgraph.xlsx`, `date`, `icsa`, `unrate`, respectively) are hardcoded in `main.py` and shown in the help message (`-h`). The script uses these defaults if the arguments are not provided and does not prompt interactively for them.
+
+*   **Analysis Parameters (`--range`, `--window`):** These are optional command-line arguments. If not provided via the command line, the script prompts the user interactively with descriptions of what the parameters mean. Basic positive integer validation is performed on the interactive input.
+
+*   **Other Parameters (`--header`, `--sheet`, `--output_dir`):** These remain optional command-line arguments with defaults (`0`, `Monthly`, `results`, respectively). The script does not prompt interactively for these.
+
+## 4. Technical Stack
 
 *   **Language:** Python 3.x
 *   **Core Libraries:**
@@ -47,7 +55,7 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
     *   `openpyxl` / `xlsxwriter`: Reading/writing Excel files.
     *   `argparse`: Handling command-line arguments.
 
-## 4. Future Considerations
+## 5. Future Considerations
 
 *   GUI Development (e.g., using Tkinter, PyQt, or Streamlit).
 *   More sophisticated missing data handling options.
@@ -56,11 +64,3 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 *   Winsorizing / trimming outliers
 *   Automatically adjust time periods if one is weekly, the other monthly etc.
 *   Fix charting functions and rolling correlation charts
-
-## 5. Input Handling Strategy (CLI)
-
-*   **File Path & Core Columns (`--file-path`, `--date-col`, `--leading-col`, `--target-col`):** These are optional command-line arguments. Default values (`C:\\Users\\franc\\OneDrive\\Desktop\\Programming\\Regression Project\\fredgraph.xlsx`, `date`, `icsa`, `unrate`, respectively) are hardcoded in `main.py` and shown in the help message (`-h`). The script uses these defaults if the arguments are not provided and does not prompt interactively for them.
-
-*   **Analysis Parameters (`--range`, `--window`):** These are optional command-line arguments. If not provided via the command line, the script prompts the user interactively with descriptions of what the parameters mean. Basic positive integer validation is performed on the interactive input.
-
-*   **Other Parameters (`--header`, `--sheet`, `--output_dir`):** These remain optional command-line arguments with defaults (`0`, `Monthly`, `results`, respectively). The script does not prompt interactively for these.
