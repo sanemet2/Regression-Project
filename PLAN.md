@@ -64,3 +64,19 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 *   Winsorizing / trimming outliers
 *   Automatically adjust time periods if one is weekly, the other monthly etc.
 *   Fix charting functions and rolling correlation charts
+
+## 6. Code Refactoring Plan
+
+*   **Efficiency & Conciseness in `analysis.py`:**
+    *   [ ] Refactor `find_optimal_lead_lag` to potentially reduce complexity. Explore simplifying how the temporary DataFrame (`temp_df`) is handled inside the loop if possible without significant performance impact.
+    *   [ ] Refactor `calculate_rolling_correlations` similarly. Look for ways to streamline the logic within the loop.
+    *   [ ] **Test:** After refactoring `analysis.py`, run the script (`python main.py`, enter `24`, `24`) and compare output (optimal shift, R-squared, exported Excel) to ensure results are identical to the pre-refactoring run.
+*   **Consolidation & Readability:**
+    *   [ ] Review `plotting.py`: Identify opportunities to create helper functions for common plotting tasks (e.g., setting titles/labels, saving figures, standardizing appearance) to reduce code repetition and improve conciseness.
+    *   [ ] Define Constants: Review all `.py` files for repeated strings (like internal column names 'Leading', 'Target', 'Shifted_Leading', 'Correlation_Shift_X') or magic numbers. Define these as constants (e.g., `LEADING_COL = 'Leading'`) at the top of the modules where they are primarily used (`analysis.py`, `plotting.py`, `export.py`).
+    *   [ ] **Test:** After consolidating plotting code and defining constants, run the script again to ensure plots are generated correctly and results match previous runs.
+*   **Minor Improvements & Cleanup:**
+    *   [ ] Review interactive input loops in `main.py` for potential minor structural simplification.
+    *   [ ] Enhance error handling in `data_loader.py` during date parsing (`pd.to_datetime`) to provide more specific feedback if formats are unexpected.
+    *   [ ] (Low Priority) Address `FutureWarning` in `export.py` related to `pd.concat` by adjusting how the empty/NA row is handled, if feasible without complicating the logic significantly.
+    *   [ ] **Test:** Perform a final end-to-end test run after all refactoring steps are complete using standard inputs.
