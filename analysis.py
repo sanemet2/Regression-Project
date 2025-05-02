@@ -52,7 +52,7 @@ def find_optimal_lead_lag(df, max_shift):
     return best_shift, r2_results_df
 
 # --- Rolling Correlation Function ---
-def calculate_rolling_correlations(df, max_shift, window):
+def calculate_rolling_correlations(df, max_shift, window, leading_col='Leading', target_col='Target'):
     """
     Calculates rolling correlations for different lead/lag shifts.
 
@@ -60,6 +60,8 @@ def calculate_rolling_correlations(df, max_shift, window):
         df (pd.DataFrame): DataFrame with 'Leading' and 'Target' columns, DatetimeIndex.
         max_shift (int): The maximum number of periods to shift (-max_shift to +max_shift).
         window (int): The rolling window size for the correlation calculation.
+        leading_col (str): Name of the leading column.
+        target_col (str): Name of the target column.
 
     Returns:
         pd.DataFrame: A DataFrame where index is date, columns are shift periods,
@@ -75,8 +77,8 @@ def calculate_rolling_correlations(df, max_shift, window):
         print("Error: Input DataFrame is empty.")
         return None
 
-    target_series = df['Target']
-    leading_series = df['Leading']
+    target_series = df[target_col]
+    leading_series = df[leading_col]
     rolling_corr_results = {} # Dictionary to store series for each shift
 
     shifts_to_test = range(-max_shift, max_shift + 1)
@@ -106,3 +108,54 @@ def calculate_rolling_correlations(df, max_shift, window):
         return None
 
     return rolling_corr_df
+
+# --- NEW: Cumulative Correlation Function ---
+def calculate_cumulative_correlations(df, max_shift, leading_col='Leading', target_col='Target'):
+    """
+    Calculates cumulative (expanding) correlations for different lead/lag shifts.
+
+    Args:
+        df (pd.DataFrame): DataFrame with leading and target columns, DatetimeIndex.
+        max_shift (int): The maximum number of periods to shift (-max_shift to +max_shift).
+        leading_col (str): Name of the leading column.
+        target_col (str): Name of the target column.
+
+    Returns:
+        pd.DataFrame: A DataFrame where index is date, columns are shift periods (e.g., CumCorr_Shift_1),
+                      and values are the cumulative correlations. Returns None if error.
+    """
+    print(f"\n--- Cumulative Correlation Calculation ---")
+    print(f"Calculating cumulative correlations for shifts {-max_shift} to {max_shift}...")
+
+    if df.empty:
+        print("Error: Input DataFrame is empty.")
+        return None
+
+    target_series = df[target_col]
+    leading_series = df[leading_col]
+    cumulative_corr_results = {} # Dictionary to store series for each shift
+
+    shifts_to_test = range(-max_shift, max_shift + 1)
+
+    # Define a minimum number of periods required for the expanding calculation
+    # Start calculating correlation once we have at least 2 pairs of non-NA data
+    min_periods_required = 2
+
+    for shift in shifts_to_test:
+        shifted_leading = leading_series.shift(shift)
+
+        # Calculate expanding correlation between target and shifted leading series
+        cumulative_corr = shifted_leading.expanding(min_periods=min_periods_required).corr(target_series)
+
+        # Store the resulting series, naming it clearly
+        cumulative_corr_results[f'CumCorr_Shift_{shift}'] = cumulative_corr
+
+    # Combine all resulting series into a single DataFrame
+    try:
+        cumulative_corr_df = pd.DataFrame(cumulative_corr_results)
+        print(f"Cumulative correlations calculated. Shape: {cumulative_corr_df.shape}")
+    except Exception as e:
+        print(f"Error combining cumulative correlation results into DataFrame: {e}")
+        return None
+
+    return cumulative_corr_df
