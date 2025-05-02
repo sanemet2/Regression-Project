@@ -43,6 +43,7 @@ def plot_scatter(df, best_shift, output_dir, leading_col_name, target_col_name):
     except Exception as e:
         print(f"Error generating scatter plot: {e}")
 
+
 def plot_optimal_lead(df, best_shift, output_dir, leading_col_name, target_col_name):
     """
     Generates and saves a line plot showing the target series and the
