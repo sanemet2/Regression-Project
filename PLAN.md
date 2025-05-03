@@ -67,74 +67,23 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 
 *   GUI Development (e.g., using Tkinter, PyQt, or Streamlit).
 *   Embedding plots directly into Excel (using `xlsxwriter` capabilities).
-*   Automatically adjust time periods if one is weekly, the other monthly etc.
 *   Fix charting functions and rolling correlation charts
 *   Fix formatting
 
+## 6. Excel Output Formatting Refinements
 
-## 6. Output Formatting & Exclusion Logic Refinements
+*   **Goal:** Ensure correct formatting (bold strongest column + highlight bandwidth) is applied to both 'Rolling Corrs' and 'Cumulative Corrs' sheets, and simplify the 'Optimal Shift Data' sheet.
 
-*   **Goal:** Improve the readability of the Excel output with targeted formatting and adjust the application of date exclusions to specific analysis steps.
-
-*   **Implementation Steps:**
-
-    *   [x] **Refactor Data Handling for Exclusions:**
-        *   Modify `main.py` to load data into an `df_original`.
-        *   If exclusions are specified, create `df_filtered`. Otherwise, `df_filtered = df_original`.
-        *   Pass `df_filtered` ONLY to `find_optimal_lead_lag` and `plot_scatter`.
-        *   Pass `df_original` to correlation calculations, other plots, and `export_to_excel`.
-        *   *(Status: Done)*
-
-    *   [x] **Update `export_to_excel` Function (`export.py`):**
-        *   Pass `max_shift` parameter for formatting calculations.
-        *   *(Status: Done)*
-
-    *   [x] **Style 'R2 Results' Sheet:**
-        *   In `export_to_excel`, find the row corresponding to `best_shift` (derived from filtered data if exclusions applied).
-        *   Apply a bold format to that entire row.
-        *   *(Status: Done)*
-
-    *   [x] **Style 'Rolling Correlations' Sheet:**
-        *   Add helper `_apply_correlation_formatting`.
-        *   Bold the column with the highest absolute correlation in the *last* row (using `df_original` data).
-        *   Calculate bandwidth (e.g., 25% of total shifts).
-        *   Apply conditional highlighting (e.g., light background) to columns within the bandwidth around the strongest correlation.
-        *   *(Status: Done)*
-
-    *   [x] **Style 'Cumulative Correlations' Sheet:**
-        *   Apply the same formatting logic as 'Rolling Correlations' sheet (using `df_original` data).
-        *   *(Status: Done)*
-
-    *   [x] **Enhance 'Optimal Shift Data' Sheet:**
-        *   Determine `best_rolling_shift` and `best_cumulative_shift` from the last row of respective correlation DataFrames (using `df_original` data).
-        *   Include target column and leading column shifted by `best_shift` (R2), `best_rolling_shift`, and `best_cumulative_shift`.
-        *   Use descriptive column names.
-        *   *(Status: Done)*
-
-    *   [x] **Enhance 'R2 Results' Sheet (Summary):**
-        *   Modify `export_to_excel` in `export.py`.
-        *   Extract final rolling correlation value for each shift from the last row of `rolling_corr_df`.
-        *   Extract final cumulative correlation value for each shift from the last row of `cumulative_corr_df`.
-        *   Calculate the R-squared (`r^2`) for these final correlation values.
-        *   Remove the original `R_Squared` column (redundant with `R2 (Final Cumulative)`).
-        *   Add 'R2 (Final Rolling - {window}p)' and 'R2 (Final Cumulative)' columns to the `r2_results_df` before writing to Excel.
-        *   Update bold formatting to highlight the row with the maximum value in the `R2 (Final Cumulative)` column.
-        *   *(Status: Done)*
-
-    *   [x] **Add Window Period to Excel Headers:**
-        *   Modify `export_to_excel` in `export.py`.
-        *   Include the rolling window size (e.g., `{window}p`) in relevant column headers.
-            *   'R2 Results': Change `R2 (Final Rolling)` to `R2 (Final Rolling - {window}p)`.
-            *   'Optimal Shift Data': Change the shifted rolling correlation column name to include window and shift (e.g., `Lead_Shifted_Roll_{window}p_{shift}p`).
-        *   *(Status: Done)*
-
-    *   [x] **Testing:**
-        *   Run the script with and without `--exclude-period`.
-        *   Verify the scatter plot uses filtered data (if exclusions applied).
-        *   Verify all other plots and the relevant Excel sheets ('Optimal Shift Data', 'Rolling Correlations', 'Cumulative Correlations') use the full, unfiltered data.
-        *   Verify the bolding and bandwidth highlighting in the Excel sheets works correctly.
-        *   Verify the 'R2 Results' sheet includes accurate final correlation values.
-        *   *(Status: Pending)*
+*   **Debugging/Refinement Checklist:**
+    1.  [x] **Review Formatting Function:** Check `_apply_correlation_formatting` in `export.py`. Verify parameters and logic for bolding (`apply_bolding`) and highlighting (`apply_highlighting`).
+    2.  [x] **Inspect Strongest Shift Logic:** Check the code within `_apply_correlation_formatting` that determines `strongest_shift_col_name` and parses `strongest_shift_S`. Add print statements if necessary to verify values during execution.
+    3.  [x] **Inspect Highlighting Logic (`apply_highlighting=True`):** (Investigated)
+    4.  [x] **Inspect Bolding Logic (`apply_bolding=True`):** (Investigated)
+    5.  [x] **Test Simplified Formatting:** (Investigated)
+    6.  [x] **Implement Fixes:** Based on findings, modify the code in `export.py` to apply both bold and highlight to both correlation sheets.
+    7.  [x] **Retest Formatting:** Run the script and verify the Excel output formatting is correct for both sheets.
+    8.  [x] **Simplify 'Optimal Shift Data' Sheet:** Modify `export_to_excel` in `export.py` to remove the 'R-squared shift' column, keeping only target, best-rolling-shift, and best-cumulative-shift columns.
+    9.  [x] **Retest 'Optimal Shift Data' Sheet:** Run script and verify the sheet simplification.
 
 ## 7. Known Issues & Bugs
 
