@@ -83,40 +83,30 @@ Create a Python Command Line Interface (CLI) application that analyzes the lead/
 
 
 
-## 6. Mixed Frequency Handling (Multi-Date Column Input)
+## 6. GUI Development (Streamlit)
 
-*   **Goal:** Load data from an Excel file containing separate date columns for potentially different frequency series (e.g., weekly and monthly). Automatically detect frequencies, downsample the higher-frequency series to match the lower one using the last value of the period, and perform analysis on the aligned data.
+**Goal:** Provide a user-friendly interface for loading Excel workbooks, selecting date/value columns, configuring analysis parameters, running the mixed-frequency analysis, viewing results interactively, exporting reports, and logging inputs.
 
-*   **Implementation Checklist:**
-    1.  [x] **Update CLI Arguments:** In `main.py`, replace `--date-col`, `--leading-col`, `--target-col` with four specific arguments:
-        *   `--lead-date-col` (default: `observation_date`)
-        *   `--lead-val-col` (default: `ICSA`)
-        *   `--target-date-col` (default: `date`)
-        *   `--target-val-col` (default: `unrate`)
-        *   Update help messages and parameter summary printout.
-    2.  [x] **Revise Data Loading:** Modify `load_data` function (or logic in `main.py`):
-        *   Read the specified sheet from the Excel file into a raw DataFrame.
-        *   **Create Leading Series:** Select the `--lead-date-col` and `--lead-val-col`. Convert the date column to datetime objects (handle errors). Set the date column as the index. Rename the value column to 'Leading'. Store this as `lead_series_raw`.
-        *   **Create Target Series:** Select the `--target-date-col` and `--target-val-col`. Convert the date column to datetime objects (handle errors). Set the date column as the index. Rename the value column to 'Target'. Store this as `target_series_raw`.
-        *   Return both `lead_series_raw` and `target_series_raw`.
-    3.  [x] **Detect Individual Frequencies:** In `main.py`, after getting the raw series:
-        *   Infer frequency from `lead_series_raw.index` -> `freq_lead`.
-        *   Infer frequency from `target_series_raw.index` -> `freq_target`.
-        *   Print detected frequencies or warnings if irregular.
-    4.  [x] **Check Resampling Condition:** Determine if resampling is necessary (requires both `freq_lead` and `freq_target` to be validly inferred *and* `freq_lead != freq_target`).
-    5.  [x] **Determine Target Frequency and Series:** If resampling is needed, identify the lower frequency string (`target_frequency`) and which series (`series_to_resample`) has the higher frequency.
-    6.  [x] **Perform Downsampling:** If resampling is needed:
-        *   Resample the `series_to_resample` using `series_to_resample.resample(target_frequency).last()`. Store the result.
-        *   Keep the *other* series as is.
-        *   Print a message indicating which series was downsampled to which frequency.
-    7.  [x] **Combine and Align Data:**
-        *   Create a new DataFrame `df_analysis`.
-        *   Assign the target series (original or resampled) to `df_analysis['Target']`.
-        *   Assign the leading series (original or resampled) to `df_analysis['Leading']`.
-        *   Apply `df_analysis = df_analysis.dropna()` to keep only rows where *both* series have valid data after potential resampling and alignment.
-    8.  [x] **Adapt Analysis & Export:** Modify all subsequent function calls (`find_optimal_lead_lag`, `calculate_rolling_correlations`, `calculate_cumulative_correlations`, `plot_*`, `export_to_excel`) to accept and operate on `df_analysis`. Remove dependencies on the old `df_original` / `df_filtered` structure where necessary. Ensure `export_to_excel` uses the correct column names (e.g., 'Leading', 'Target') internally.
-    9.  [x] **Update Documentation:** Add notes to `PLAN.md` (Section 2 & 3) and CLI help messages about the new four-column argument structure and automatic frequency handling.
-    10. [x] **Testing:** Test thoroughly with the new file structure and potentially other mixed-frequency examples.
+### Implementation Checklist:
+
+1. [x] Add new dependency `streamlit>=1.0` to `requirements.txt` and install it.
+2. [x] Create `app.py` at the project root. Import `streamlit as st` and core modules (`load_data`, `analysis`, `export_results`).
+3. [x] Implement file uploader widget to load `.xls`/`.xlsx` files and display available sheet names.
+   - [x] Test: uploader appears and sheet names list correctly.
+4. [x] Read selected sheet with `pandas.read_excel`, show a preview table via `st.dataframe`, and drop rows with NaNs.
+   - [x] Test: DataFrame preview displays correctly.
+5. [x] Dynamically populate dropdowns for the four columns: lead date, lead value, target date, target value. Ensure date parsing handles `mm/yy` format.
+   - [x] Test: Column selection dropdowns appear and are populated.
+6. [x] Add widgets for parameters: `max_shift` (int), `window` (int), `exclude_period` (text `START:END`).
+   - [x] Test: Parameter input widgets appear correctly.
+7. [x] On “Run Analysis” button click:
+   - [x] Call `load_data(...)` with the uploaded file and selected columns.
+   - [x] Drop missing data and apply exclude periods.
+   - [x] Test: raw series loaded without errors.
+8. [x] Detect frequencies with `pd.infer_freq`; if differ, resample the higher-frequency series (`.resample(...).last()`), then align series into a DataFrame.
+9. [x] Call analysis functions: `find_optimal_lead_lag`, `calculate_rolling_correlations`, `calculate_cumulative_correlations`.
+
+> ✅ We will check off each box as we complete the step.
 
 ## 7. Known Issues & Bugs
 
